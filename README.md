@@ -1,11 +1,18 @@
-# ZTI's  DEV & SRE  knowledge repository
 
-## job:
 
 ```mermaid
-flowchart TB
-    CEO --> 技术部
-    CEO --> 市场部
-    技术部 --> 前端组
-    技术部 --> 后端组
+graph LR
+    CloudNative --> SRE
+    CloudNative --> DEV
+
+    SRE --- Observe
+    SRE --- Linux
+    SRE --- K8S
+    SRE --- Devops
+    SRE --- Alicloud
+
+    DEV --- springboot3.x
+    DEV --- Redis
+    DEV --- Mysql
+    DEV --- Java17
 ```
