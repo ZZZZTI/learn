@@ -1,0 +1,204 @@
+```shell
+-- 磁盘，网络，进程，日志，配置环境变量，ssh
+
+
+
+
+
+# 磁盘
+
+df -h                                  # 查看磁盘使用情况
+du -sh * | sort -rh                    # 查看当前目录下各文件/文件夹大小
+du -sh /data/* | sort -rh | head -10   # 找最大的10个目录
+find /data -type f -size +1G -ls       # 找大于1G的文件
+lsblk                                  # 查看磁盘分区概览
+sudo fdisk -l /dev/sda                 # 查看分区表
+
+
+# 网络
+
+ip a                      # 查看 IP 地址
+ping 8.8.8.8              # 测试外网
+ping hadoop-namenode      # 测试内网服务器
+nc -zv hostname port      # 测试端口是否开放
+ss -tlnp | grep 8080      
+netstat -tlnp | grep 8080 # 查看端口占用
+nslookup baidu.com        
+dig baidu.com             # DNS 解析
+ip route                  # 查看路由（排查网络不通）
+traceroute google.com     # 追踪路由，排查网络问题
+curl -I http://api/health # 测试 HTTP 接口
+
+
+# 进程
+
+    查看进程
+ps aux | grep spark      # 查看 Spark 任务
+ps aux | grep python     
+ps -ef | grep etl        # 查看 Python 脚本
+pstree -p                # 查看所有进程树
+pstree -p 12345          # 查看指定 PID 的子进程
+
+    杀进程
+kill 12345               # 正常终止
+kill -9 12345            # 强制杀死（任务卡死时用）
+pkill -f "spark"         # 杀掉所有包含 spark 的进程
+Ctrl+C                   # 停止正在持续进行的操作
+
+    后台运行
+nohup python etl.py > etl.log 2>&1 &
+nice / renice            # 调整优先级
+
+
+# 监控，日志
+
+-- 监控
+
+-- 查看系统负载：uptime
+15:30:45   up 10 days,   1 user,    load average: 2.5,    3.0,   2.8
+时间       运行时间                               1分钟   5分钟   15分钟
+
+-- 查看内存使用：free -h
+total        used        free      shared    buff/cache   available（可用内存）
+15G          8G          2G         1G         5G         6G
+2G           0G          2G
+
+-- 判断计算瓶颈（cpu）
+top -u your_username        # 实时查看CPU，只看自己的进程
+top：界面-->P:按CPU使用率排序/M：按内存使用率排序/q：退出
+lscpu                       # 查看CPU核数、型号
+
+-- 日志
+
+-- 日志位置
+/var/log/syslog            # Ubuntu/Debian 系统日志
+/var/log/messages          # CentOS/RHEL 系统日志
+/var/log/hadoop-hdfs/      # HDFS日志
+/var/log/hadoop-yarn/      # YARN日志
+/var/log/spark/            # Spark日志
+/var/log/hive/             # Hive日志
+/opt/etl/logs/             # 用户自定义ETL日志
+/var/log/nginx/access.log  # Nginx访问日志（Web服务器）
+/var/log/nginx/error.log   # Nginx错误日志
+yarn logs -applicationId application_1234567890_0001  # YARN任务日志
+
+-- 搜索错误
+tail -f           # 实时监控（最常用）
+tail/head -100    # 查看最后/开头N行
+less              # 分页浏览大日志
+grep ERROR        # 基础搜索
+grep -n ERROR     # 带行号
+grep -c ERROR     # 统计错误数量
+grep -A 5 ERROR   # 错误行及后面5行
+grep -B 5 ERROR   # 错误行及前面5行
+grep -C 5 ERROR   # 前后各5行
+grep -E "ERROR|FATAL|Exception"                 # 搜索多个关键词
+grep -i nullpointer                             # 忽略大小写
+grep ERROR job.log | grep -v "ignored"          # 排除包含ignored的ERROR
+grep -r "NullPointerException" /var/log/spark/  # 递归搜索目录
+
+
+# 环境变量配置
+
+-- 基础操作
+
+env                        # 查看所有环境变量
+echo $JAVA_HOME            # 查看单个变量（检查是否已配置）
+echo $PATH | tr ':' '\n'   # 查看特定变量的所有值
+MY_VAR="hello"             # Shell 变量（只在当前 shell 有效）
+export MY_VAR="hello"      # 环境变量（当前 shell 及子进程都有效）
+export XXX=/.../...        # 配置环境变量
+永久配置：写在 ~/.bashrc
+
+-- 数据开发环境变量配置
+
+vim ~/.bashrc
+--Java
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+--Hadoop
+export HADOOP_HOME=/opt/hadoop
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+--Spark
+export SPARK_HOME=/opt/spark
+export SPARK_LOCAL_DIRS=/tmp/spark
+--Hive
+export HIVE_HOME=/opt/hive
+--Python
+export PYTHONPATH=/home/user/my_etl_project
+--PATH 汇总（顺序有讲究，越靠前优先级越高）
+export PATH=$JAVA_HOME/bin:$HADOOP_HOME/bin:$SPARK_HOME/bin:$HIVE_HOME/bin:$PATH
+--别名（快捷命令）
+alias hfs='hdfs dfs'
+alias hs='hive -e'
+alias sp='spark-submit'
+--使配置生效
+source ~/.bashrc
+
+
+#  ssh,文件传输
+
+-- ssh连接
+
+ssh (-p 2222)(-J jumpserver) user@hostname ("ls -la /data/")
+指定端口      使用跳板机                   执行单条命令后退出
+配置后连接：
+ssh dev                # 基础连接
+ssh hadoop-namenode    # 跳板连接
+
+-- ssh配置文件
+
+vim ~/.ssh/config   # 编辑配置文件
+--基础配置
+Host dev
+HostName 192.168.1.100
+User NBBRO
+Port 22
+--跳板机配置
+Host jump
+HostName jump.company.com
+User op
+Port 2222
+--内网服务器（通过跳板机）
+Host hadoop-namenode
+HostName 10.0.0.1
+User hdfs
+ProxyJump jump
+IdentityFile ~/.ssh/id_rsa
+--数据开发常用：多个集群
+Host cluster-hadoop
+HostName hadoop-master.example.com
+User data_user
+Port 22
+IdentityFile ~/.ssh/hadoop_key
+Host cluster-spark
+HostName spark-master.example.com
+User spark_user
+Port 2222
+
+-- 文件传输
+
+-- scp（简单文件传输）
+--从本地传到远程
+scp   local_file.txt   user@remote:/path/to/dest/
+scp   -r local_dir/    user@remote:/path/to/dest/   # 递归复制目录
+--从远程传到本地
+scp   user@remote:/path/to/file.txt   ./
+--指定端口
+scp   -P 2222    file.txt user@remote:/path/
+--限速传输（KB/s）
+scp   -l 8192    large_file.tar.gz user@remote:/path/
+
+-- rsync（增量同步，推荐大文件）
+--基本用法（同步目录）
+rsync   -avz    local_dir/    user@remote:/path/remote_dir/
+--从远程同步到本地
+rsync   -avz    user@remote:/path/data/     ./local_data/
+--排除某些文件
+rsync   -avz    --exclude="*.log"   --exclude="tmp/"    local/ remote:backup/
+--常用参数
+-a    # 归档模式（保留权限、时间等）
+-v    # 显示详细信息
+-z    # 传输时压缩
+-P    # 显示进度
+--delete  # 删除远程多余的文件
+```
