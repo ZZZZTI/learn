@@ -1,4 +1,4 @@
-```
+```bash
 # 本地仓库配置
 user.name=ZZZZTI
 user.email=19375928071@163.com
@@ -68,3 +68,8 @@ git merge feat2
 -- 回退分支
 git reset --mixed/soft/head 版本ID 
 ```
+
+
+
+
+

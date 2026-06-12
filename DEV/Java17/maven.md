@@ -1,4 +1,4 @@
-```
+```bash
 # pom.xml :DEV_Tools 项目的核心配置文件
 <project>
 
